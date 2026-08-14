@@ -220,7 +220,12 @@ fn moonlight_dep(override_path: Option<&str>) -> DepInfo {
 /// The RDP client binary name on Linux, if present (xfreerdp3 preferred).
 /// The user's package manager, detected rather than assumed — install hints
 /// were Fedora-only before this, which is wrong for most of the world.
-#[cfg(not(target_os = "windows"))]
+///
+/// Deliberately *not* `#[cfg]`-gated to non-Windows: the callers below choose
+/// their branch with `cfg!(...)`, which is a runtime bool, so every arm is
+/// still name-resolved on every target. Gating this away broke the Windows
+/// build. On Windows it is unreachable anyway — and would return `None`
+/// regardless, since no Linux package manager is on PATH there.
 fn linux_install_command(dnf: &str, apt: &str, pacman: &str, zypper: &str) -> Option<String> {
     for (bin, cmd) in [
         ("dnf", dnf),

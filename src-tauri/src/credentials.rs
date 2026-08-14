@@ -11,12 +11,17 @@ use crate::settings::Host;
 use crate::util::hide_console;
 use std::process::Stdio;
 use std::time::Duration;
+#[cfg(not(target_os = "windows"))]
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
+// Only the secret-tool (non-Windows) half names a service; Windows addresses
+// credentials as `TERMSRV/<host>` through cmdkey instead.
+#[cfg(not(target_os = "windows"))]
 const SERVICE: &str = "varde";
 /// The service name from before the rename. Read (and cleared) so passwords
 /// saved by a DeskConnect-era install keep working; never written again.
+#[cfg(not(target_os = "windows"))]
 const LEGACY_SERVICE: &str = "deskconnect";
 
 /// secret-tool talks to the session bus; make sure the address is set even if

@@ -6,7 +6,8 @@ use tokio::process::Command;
 /// our GUI (Windows only; a no-op elsewhere).
 #[cfg(target_os = "windows")]
 pub fn hide_console(cmd: &mut Command) {
-    use std::os::windows::process::CommandExt;
+    // `creation_flags` is tokio's own inherent method on Windows — importing
+    // std's CommandExt here would be dead weight (it extends std's Command).
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     cmd.creation_flags(CREATE_NO_WINDOW);
 }
