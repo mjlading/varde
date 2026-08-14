@@ -1,0 +1,786 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   Varde design system — "cozy console"
+   Warm ink instead of blue-black, one beacon-amber accent, matte opaque
+   surfaces (no glass, no blur — cheapest to composite and warmest to look
+   at), hand-drawn irregular card corners, film grain, calm motion.
+   ========================================================================== */
+
+:root {
+  /* Surfaces — warm ink, not blue-black. Alphas are warm-white so every
+     layered surface inherits the campfire cast. */
+  --bg: #14110e;
+  --bg-2: #0f0c0a;
+  --surface: rgba(255, 235, 210, 0.04);
+  --surface-2: rgba(255, 235, 210, 0.065);
+  --surface-hover: rgba(255, 235, 210, 0.085);
+  /* Opaque elevated surface for modal dialogs — no bleed-through. */
+  --surface-solid: #1e1915;
+  --hairline: rgba(255, 235, 210, 0.1);
+  --hairline-strong: rgba(255, 235, 210, 0.18);
+
+  /* Text — strict opacity hierarchy, warm white */
+  --text: rgba(255, 250, 242, 0.98);
+  --text-2: rgba(255, 250, 242, 0.62);
+  --text-3: rgba(255, 250, 242, 0.42);
+
+  /* Accent: beacon amber — a varde is a signal fire. Status colors keep
+     their meanings but sit in the same warm light. */
+  --accent: #e79c50;
+  --accent-strong: #f2ad63;
+  --accent-dim: rgba(231, 156, 80, 0.16);
+
+  --offline: #8d857a;
+  --waking: #f3b73b;
+  --online: #66c78d;
+  --inuse: #c69ae0;
+  --danger: #ff7d70;
+
+  /* Type */
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "Cascadia Mono", monospace;
+
+  /* Shape + motion. The wobble radius is the hand-drawn tell: four corners
+     that don't quite agree, like a marker drawing of a rounded box. */
+  --radius: 20px;
+  --radius-sm: 14px;
+  --radius-xs: 10px;
+  --radius-wobble: 19px 22px 18px 23px / 22px 18px 23px 19px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 200ms;
+
+  color-scheme: dark;
+}
+
+/* ---- OLED minimal mode -----------------------------------------------------
+   True black, hairlines and type only — for OLED panels, battery, and the
+   people who asked for it. The cairn stays (it is the status display); the
+   ambient layer goes: no light pools, no grain, no scenes, no comets. */
+:root[data-theme="oled"] {
+  --bg: #000;
+  --bg-2: #000;
+  --surface: rgba(255, 255, 255, 0.02);
+  --surface-2: rgba(255, 255, 255, 0.045);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --surface-solid: #0a0a0a;
+  --hairline: rgba(255, 255, 255, 0.13);
+  --hairline-strong: rgba(255, 255, 255, 0.22);
+  --text: rgba(255, 255, 255, 0.97);
+  --text-2: rgba(255, 255, 255, 0.58);
+  --text-3: rgba(255, 255, 255, 0.38);
+  --radius-wobble: 14px;
+}
+
+:root[data-theme="oled"] body::before,
+:root[data-theme="oled"] body::after {
+  display: none;
+}
+
+:root[data-theme="oled"] .scene-panel,
+:root[data-theme="oled"] .card-beam,
+:root[data-theme="oled"] .card-spotlight,
+:root[data-theme="oled"] .card-tint {
+  display: none;
+}
+
+:root[data-theme="oled"] .action-card--art {
+  padding-top: 22px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Bricolage Grotesque Variable", "Bricolage Grotesque", system-ui, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+/* Ambient background: warm light pooling at the edges, like a room lit by
+   one lamp. Static by design — the old drifting aurora kept the compositor
+   awake every frame of the app's life for an effect nobody consciously saw. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -12%;
+  z-index: -1;
+  background:
+    radial-gradient(1100px 620px at 50% -12%, rgba(231, 156, 80, 0.11), transparent 60%),
+    radial-gradient(900px 700px at 100% 110%, rgba(198, 154, 224, 0.05), transparent 55%),
+    radial-gradient(700px 500px at -10% 60%, rgba(243, 183, 59, 0.055), transparent 55%),
+    var(--bg);
+  pointer-events: none;
+}
+
+/* Film grain: kills gradient banding and the "flat utility app" feel.
+   Practically invisible, texturally present. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+::selection {
+  background: var(--accent-dim);
+}
+
+/* Thin, quiet scrollbars */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+  background-clip: padding-box;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.021em;
+  color: var(--text);
+}
+
+/* ------------------------------- App shell -------------------------------- */
+
+.app-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* margin:auto inside a flex column centers vertically when content fits and
+   falls back to normal top-aligned scrolling when it doesn't. */
+.page {
+  width: 100%;
+  max-width: 760px;
+  margin: auto;
+  padding: 48px 40px;
+}
+
+.page-wide {
+  max-width: 900px;
+}
+
+/* -------------------------------- Cards ----------------------------------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-wobble);
+}
+
+/* Modal dialog surface — opaque so blurred content behind can't bleed through. */
+.dialog {
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 40px 90px -34px rgba(0, 0, 0, 0.9);
+}
+
+/* -------------------------- Big action cards ------------------------------ */
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  width: 100%;
+  padding: 24px 26px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-wobble);
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    transform var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.action-card:hover,
+.action-card:focus-visible {
+  transform: translateY(-3px);
+  background: var(--surface-2);
+  border-color: var(--hairline-strong);
+  box-shadow:
+    0 18px 50px -24px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  outline: none;
+}
+
+.action-card:active {
+  transform: translateY(-1px);
+}
+
+.action-card:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Art variant: a console tile — the scene is the tile's top face, the words
+   sit under it, and the keycap floats over the scene's corner. */
+.action-card--art {
+  position: relative;
+  overflow: hidden;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0 0 20px;
+  gap: 16px;
+  text-align: left;
+}
+
+.card-tint {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.85;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.action-card--art:hover .card-tint {
+  opacity: 1;
+}
+
+/* Spotlight that follows the cursor across the card (--mx/--my are set from
+   a mousemove handler). Invisible until hover, so keyboard use stays calm. */
+.card-spotlight {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 350ms var(--ease);
+  background: radial-gradient(
+    340px circle at var(--mx, 50%) var(--my, 40%),
+    rgba(255, 255, 255, 0.07),
+    transparent 70%
+  );
+}
+
+.action-card--art:hover .card-spotlight {
+  opacity: 1;
+}
+
+/* Border beam: a masked ring only 1.5px thick; a conic-gradient "comet"
+   rotates behind the mask so a spark of light endlessly traces the card's
+   border. Faint at rest, full strength on hover. */
+.card-beam {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  /* Rest state is dark: the comet is a hover reward, not a permanent cost —
+     three of these rotating forever was a third of the idle GPU bill. */
+  opacity: 0;
+  transition: opacity 450ms var(--ease);
+  overflow: hidden;
+  /* Keep only the padding ring: inner box XORed out of the full box. */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.card-beam::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 360%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 288deg,
+    var(--beam-color, rgba(231, 156, 80, 0.9)) 336deg,
+    rgba(255, 255, 255, 0.95) 352deg,
+    transparent 360deg
+  );
+  animation: beam-spin 10s linear infinite;
+  animation-delay: var(--beam-delay, 0s);
+}
+
+.action-card--art:hover .card-beam,
+.action-card--art:focus-visible .card-beam {
+  opacity: 1;
+}
+
+@keyframes beam-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Honor the OS "reduce animations" setting for purely decorative motion.
+   The loading spinner stays — it conveys in-progress state. */
+@media (prefers-reduced-motion: reduce) {
+  .card-beam::before,
+  .status-dot.is-waking {
+    animation: none;
+  }
+}
+
+.scene-panel {
+  position: relative;
+  flex: none;
+  width: 100%;
+  min-height: 150px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.28);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.keycap {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(15, 12, 10, 0.72);
+  border: 1px solid var(--hairline);
+  border-bottom-width: 2px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.action-card--art:hover .keycap {
+  color: var(--text-2);
+  border-color: var(--hairline-strong);
+}
+
+.action-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.action-card:hover .action-icon {
+  color: var(--accent-strong);
+  background: var(--accent-dim);
+  border-color: rgba(91, 140, 255, 0.25);
+}
+
+.action-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 20px;
+}
+
+.action-title {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.action-sub {
+  display: block;
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+
+.action-chevron {
+  flex: none;
+  color: var(--text-3);
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.action-card:hover .action-chevron {
+  color: var(--text-2);
+  transform: translateX(3px);
+}
+
+/* ------------------------------ Status chip ------------------------------- */
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 13px 7px 11px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.status-dot {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--dot, var(--offline));
+  box-shadow: 0 0 0 0 var(--dot, var(--offline));
+}
+
+.status-dot.is-online {
+  --dot: var(--online);
+  box-shadow: 0 0 12px 0 rgba(55, 212, 149, 0.55);
+}
+.status-dot.is-offline {
+  --dot: var(--offline);
+}
+.status-dot.is-inuse {
+  --dot: var(--inuse);
+  box-shadow: 0 0 12px 0 rgba(178, 139, 255, 0.5);
+}
+.status-dot.is-waking {
+  --dot: var(--waking);
+  animation: breathe 2.1s var(--ease) infinite;
+}
+
+/* PS5-style calm breathing pulse for the Waking state */
+@keyframes breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(243, 183, 59, 0.55);
+    opacity: 0.65;
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(243, 183, 59, 0);
+    opacity: 1;
+  }
+}
+
+/* --------------------------------- Buttons -------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 550;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    opacity var(--dur) var(--ease);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #06080f;
+  font-weight: 600;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+.btn-ghost {
+  background: var(--surface);
+  border-color: var(--hairline);
+  color: var(--text);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--hairline-strong);
+}
+
+.btn-quiet {
+  background: transparent;
+  color: var(--text-2);
+}
+.btn-quiet:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.btn-danger {
+  background: transparent;
+  border-color: rgba(255, 107, 107, 0.3);
+  color: var(--danger);
+}
+.btn-danger:hover:not(:disabled) {
+  background: rgba(255, 107, 107, 0.1);
+}
+
+/* Small icon-only round button */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.icon-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  border-color: var(--hairline-strong);
+}
+
+/* --------------------------------- Fields --------------------------------- */
+
+.field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+
+.input {
+  width: 100%;
+  padding: 13px 15px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  user-select: text;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.input::placeholder {
+  color: var(--text-3);
+}
+.input:focus {
+  outline: none;
+  border-color: rgba(91, 140, 255, 0.55);
+  background: rgba(91, 140, 255, 0.04);
+}
+
+.hint {
+  font-size: 12.5px;
+  color: var(--text-3);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* ------------------------------ Segmented --------------------------------- */
+
+.segmented {
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+}
+.segmented button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 550;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.segmented button[data-active="true"] {
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset;
+}
+
+/* -------------------------------- Toggle ---------------------------------- */
+
+.toggle {
+  position: relative;
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  flex: none;
+}
+.toggle[data-on="true"] {
+  background: var(--accent);
+  border-color: transparent;
+}
+.toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #fff;
+  transition: transform var(--dur) var(--ease);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.toggle[data-on="true"]::after {
+  transform: translateX(18px);
+}
+
+/* ----------------------------- Row / list --------------------------------- */
+
+.row-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+}
+
+.divider {
+  height: 1px;
+  background: var(--hairline);
+  border: none;
+  margin: 0;
+}
+
+/* --------------------------------- Utility -------------------------------- */
+
+.text-2 {
+  color: var(--text-2);
+}
+.text-3 {
+  color: var(--text-3);
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+.muted-panel {
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.pin-display {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 48px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--text);
+  padding-left: 0.2em;
+}
+
+/* Backdrop for overlays */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: rgba(6, 7, 12, 0.68);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Focus ring for keyboard users on interactive non-.action elements */
+button:focus-visible,
+a:focus-visible,
+.toggle:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(91, 140, 255, 0.6);
+  outline-offset: 2px;
+}
+
+/* ---- Calm mode -------------------------------------------------------------
+   A session is running or the window is hidden: every decoded frame matters
+   more than our ambience. JS loops stop via useCalm(); these stop the pure-CSS
+   consumers. */
+body.calm .card-beam::before {
+  animation-play-state: paused;
+}

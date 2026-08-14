@@ -1,0 +1,37 @@
+[package]
+name = "varde"
+version = "0.1.0"
+description = "A sleek launcher for waking, streaming, and remoting into a headless PC"
+authors = ["Varde"]
+edition = "2021"
+license = "GPL-3.0-or-later"
+
+[lib]
+# The `_lib` suffix keeps the lib name unique from the bin name (needed on Windows).
+name = "varde_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-window-state = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "process", "net", "time", "io-util", "macros", "sync"] }
+mdns-sd = "0.11"
+regex = "1"
+uuid = { version = "1", features = ["v4"] }
+# Used by the HTTP wake transport (UpSnap / Home Assistant / router endpoints),
+# which is how the PC gets woken from outside its own network. rustls keeps the
+# build free of a system OpenSSL dependency on both Linux and Windows.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+tauri-plugin-global-shortcut = "2.3.2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

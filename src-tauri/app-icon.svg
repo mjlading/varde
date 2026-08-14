@@ -1,0 +1,24 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tile" x1="212" y1="150" x2="812" y2="874" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17171f"/>
+      <stop offset="1" stop-color="#0b0b0e"/>
+    </linearGradient>
+    <linearGradient id="glyph" x1="360" y1="300" x2="680" y2="720" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8FB0FF"/>
+      <stop offset="1" stop-color="#5B8CFF"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.5">
+      <stop stop-color="#5B8CFF" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#5B8CFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="112" y="112" width="800" height="800" rx="196" fill="url(#tile)"/>
+  <rect x="112.5" y="112.5" width="799" height="799" rx="195.5" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="1"/>
+  <circle cx="512" cy="470" r="250" fill="url(#glow)"/>
+
+  <!-- power / connect glyph -->
+  <path d="M405 405a150 150 0 1 0 214 0" stroke="url(#glyph)" stroke-width="52" stroke-linecap="round"/>
+  <path d="M512 320v165" stroke="url(#glyph)" stroke-width="52" stroke-linecap="round"/>
+</svg>

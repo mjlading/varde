@@ -1,0 +1,29 @@
+name: Bug report
+description: Something broke
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Varde version
+    validations: { required: true }
+  - type: input
+    id: platform
+    attributes:
+      label: Client OS and host OS
+      placeholder: "Fedora 43 → Windows 11 Pro 25H2"
+    validations: { required: true }
+  - type: input
+    id: hostsw
+    attributes:
+      label: Host software
+      placeholder: "Sunshine 2025.x / Apollo x.y"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
