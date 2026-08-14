@@ -30,7 +30,37 @@ npm run build                     # tsc + vite
 cd src-tauri && cargo check && cargo test
 ```
 
+## Building installers
+
+```sh
+npm run tauri build   # → src-tauri/target/release/bundle/
+```
+
+Native installers only build on their own OS; CI's release workflow does
+all platforms from a `v*` tag. AppImage tooling needs `libfuse.so.2` —
+without it the RPM still builds but linuxdeploy fails, and
+`APPIMAGE_EXTRACT_AND_RUN=1` is the escape hatch.
+
 ## The shape of the code
+
+```
+src/                     React + TypeScript frontend
+  screens/               Wizard · Main · Settings
+  components/            ActionCard, ConnectOverlay, artwork (scenes + cairn)
+  lib/                   connect state machine, status polling, calm mode, i18n
+  locales/               en (canonical) · nb
+src-tauri/src/           Rust backend
+  net.rs                 magic packets, TCP probing, status, ARP MAC lookup
+  wake.rs                wake transports (WoL / HTTP / SSH relay) + diagnostics
+  discovery.rs           mDNS (_nvstream._tcp)
+  moonlight.rs           pairing (PIN via events) + stream launch/watch
+  rdp.rs                 FreeRDP / mstsc, GFX pipeline, host optimizer
+  ssh.rs                 sleep, console state/reclaim, PowerShell transport
+  session.rs             which leg is up; ending it for the hot-switch
+  cli.rs                 the terminal face
+  settings.rs            settings.json store & migrations
+  commands.rs, lib.rs    Tauri command surface + app builder
+```
 
 - `src-tauri/src/` — Rust: one module per domain (net, wake, moonlight,
   rdp, ssh, session, settings, cli). `commands.rs` is thin Tauri glue; all
@@ -44,6 +74,15 @@ cd src-tauri && cargo check && cargo test
   surfaces, hand-drawn SVG scenes, and calm-mode discipline — nothing may
   animate or poll aggressively while a session runs or the window is hidden
   (see `src/lib/calm.ts`). New ambient animation must respect `useCalm()`.
+
+### One trap worth knowing
+
+`cfg!(target_os = "windows")` is a **runtime** boolean, so every arm of an
+`if cfg!(…)` chain is still name-resolved and type-checked on every
+target. Calling a `#[cfg]`-gated item from such an arm compiles on the
+platform where the item exists and fails everywhere else — invisible
+locally, caught only by the Windows CI job. Prefer keeping helpers
+un-gated, or use real `#[cfg]` attributes on both variants.
 
 ## Pull requests
 

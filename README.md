@@ -1,87 +1,129 @@
 <div align="center">
 
+<img src="docs/assets/varde-mark.svg" width="104" alt="">
+
 # Varde
 
 **One calm launcher for waking, streaming, and remoting into your PC.**
 
-A *varde* is a Norwegian signal cairn — stone beacons lit in chains, one
-hill waking the next. This one wakes your gaming PC.
+Wake-on-LAN, Moonlight/Sunshine game streaming and Remote Desktop behind
+one home screen — for Linux and Windows, against a headless Windows PC.
 
-Wake-on-LAN, HTTP and SSH-relay wake · Moonlight/Sunshine/Apollo game
-streaming · Remote Desktop — behind a single console-style home screen,
-with a terminal interface for everything. Built with Tauri 2 (Rust) + React.
+[Download](https://github.com/mjlading/varde/releases/latest) ·
+[Install](#install) ·
+[Docs](docs/) ·
+[Contributing](CONTRIBUTING.md) ·
+[Report a bug](https://github.com/mjlading/varde/issues/new)
+
+[![CI][ci-badge]][ci-link]
+[![Latest release][rel-badge]][rel-link]
+[![License][lic-badge]][lic-link]
+[![Platform][plat-badge]][plat-link]
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-oled.webp">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-cozy.webp">
+  <img src="docs/assets/hero-cozy.webp" width="100%" alt="Varde's home screen: Play, Desktop and Work tiles beside a stone-cairn beacon showing the PC's status">
+</picture>
+
+*A varde is a Norwegian signal cairn — stone beacons lit in chains, one
+hill waking the next. This one wakes your gaming PC.*
 
 </div>
-
----
 
 ## What it is
 
 Varde is not another Moonlight client — it's the **lifecycle companion**
-around the tools you already use. Moonlight renders your stream and FreeRDP
-renders your desktop; Varde does everything around them that normally means
-a terminal, a wiki page, or walking over to the machine:
+around the tools you already use. Moonlight renders your stream and
+FreeRDP renders your desktop; Varde does everything around them that
+normally means a terminal, a wiki page, or walking over to the machine.
 
 - **Play** — stream your game app (Steam Big Picture) via Moonlight.
 - **Desktop** — stream the full desktop, pixel for pixel.
-- **Work** — Remote Desktop, with Windows' RDP8 graphics pipeline
-  (`/gfx:AVC444`) requested by default.
+- **Work** — Remote Desktop, requesting Windows' RDP8 graphics pipeline
+  *and* checking the host policy that makes it real.
+- **Wakes first, always.** A magic packet is a link-layer broadcast: it
+  dies at the first router. So waking is three transports — WoL, an HTTP
+  URL, or an SSH relay beside the PC — all tried, one success enough.
+- **Fixes the black screen.** Nobody logged in, or a desktop parked on
+  an RDP session, and streaming shows the same black picture. With SSH,
+  Varde repairs both before Moonlight starts.
+- **Calm by principle.** While a session runs, every ambient animation
+  freezes, the status poll stretches, and your CPU cycles go to video
+  decoding instead of ambience.
+
+<div align="center">
+<br>
+<img src="docs/assets/totem-states.png" width="640" alt="The cairn beacon in four states: asleep, waking, ready, in use">
+<br>
+<sub>A snoring stone-cairn mascot whose beacon fire <i>is</i> the status display.</sub>
+<br><br>
+</div>
 
 Any action against a sleeping PC **wakes it first**, narrates real
 milestones ("answering the network → Windows starting"), shows a progress
-bar calibrated to how long the last wake actually took — and tells you what
-actually happened when it fails.
+bar calibrated to how long the last wake actually took — and tells you
+what actually happened when it fails.
 
-### Wake from anywhere
+## Why not just Moonlight?
 
-A magic packet is a link-layer broadcast: it dies at the first router.
-Waking is therefore a set of transports, all tried, one success enough:
-
-- **Wake-on-LAN** — magic packets to every saved MAC, re-sent every few
-  seconds, aimed at both limited and subnet-directed broadcast.
-- **HTTP** — any URL that wakes the PC for you (UpSnap, a Home Assistant
-  webhook, a router page). Works from anywhere the URL is reachable.
-- **SSH relay** — log in to something always-on beside the PC (a NAS, a Pi)
-  and have *it* send the packet. Works over a VPN or tailnet.
-
-When a wake fails, **"Why won't it wake?"** asks the PC itself over SSH
-about the Windows settings invisible from the client — Fast Startup
-powering the NIC down, whether anything may wake the machine at all,
-whether the live adapter has "Wake on Magic Packet" enabled, whether that
-adapter's MAC is even in your saved list — and each finding comes with the
-fix.
-
-### The streaming ↔ desktop handover
-
-Streaming captures the physical console; RDP moves the desktop off it. Two
-host states therefore break streaming with an identical black picture, and
-neither is fixed by reconnecting: nobody logged in, or a desktop parked on
-an RDP session. With SSH configured, Varde repairs both before Moonlight
-starts — `tscon` the session back, or log the PC in via a short-lived RDP
-session and hand the desktop to the console. Closing a normal RDP session
-reclaims the console the same way.
+| | Moonlight alone | With Varde |
+|---|---|---|
+| PC asleep | nothing happens | woken first, from three directions, narrated |
+| PC at the login screen | black stream | logged in over SSH, then streamed |
+| You used Remote Desktop earlier | black stream | console handed back before launch |
+| Done for the night | walk over to the PC | one tile, or `varde sleep` |
 
 **Ctrl+Alt+Shift+D swaps the two legs in place** — streaming becomes a
 desktop; a desktop closes, hands the screen back, and resumes streaming.
-(Caveat: fullscreen clients grab the keyboard, so the chord doesn't always
-get through mid-session.)
 
-### A host optimizer that fixes Windows for you
+## Does it work with my setup?
 
-Asking for AVC444 from the client is not enough: Windows ignores it until a
-host policy allows it, and delivers 30 fps until a registry value raises
-the cap to its documented maximum of 60. Settings → Remote Desktop checks
-both over SSH and applies them with one button.
+|  | Supported |
+|---|---|
+| **This app runs on** | Linux · Windows |
+| **Your gaming PC runs** | Windows, with [Sunshine](https://github.com/LizardByte/Sunshine) or [Apollo](https://github.com/ClassicOldSong/Apollo) |
+| **Best parts need** | key-based SSH to that PC ([how](docs/host-setup.md)) |
 
-### Self-healing by design
+> [!IMPORTANT]
+> The Linux client is primary and battle-tested against a real headless
+> Windows host. The Windows client builds in CI but has had less
+> real-world use — reports welcome. macOS is not supported yet.
 
-DHCP gave your PC a new IP? Varde re-finds it via mDNS and verifies the MAC
-before adopting the address — during wakes and from the background poll.
-A stream that dies right after launch (the classic login-screen drop) is
-relaunched once automatically. A stream that ends brings the launcher back
-with the natural follow-up: reconnect, or put the PC to sleep.
+No telemetry, no accounts, no relay servers.
 
-### The terminal face
+## Install
+
+Grab an installer from [Releases](https://github.com/mjlading/varde/releases/latest)
+— `deb`, `rpm` or `AppImage` on Linux, `msi` or `exe` on Windows — then
+launch it and follow the wizard.
+
+<details>
+<summary><b>Two things that trip people up</b></summary>
+
+<br>
+
+**Windows:** the installers aren't code-signed yet, so SmartScreen may
+say "Windows protected your PC" — click **More info → Run anyway**.
+
+**AppImage:** make it executable first (right-click → Properties → allow
+executing, or `chmod +x`). The `deb`/`rpm` packages install by
+double-click on most desktops.
+
+Full notes: [docs/install.md](docs/install.md).
+
+</details>
+
+Varde launches other tools rather than replacing them, so install the
+legs you'll use: [Moonlight](https://moonlight-stream.org) for streaming,
+FreeRDP 3 for Remote Desktop on Linux (Windows has `mstsc` built in), and
+an OpenSSH client for sleep and the handover. The wizard checks all three
+and gives you the install command for your own package manager.
+
+The PC needs Sunshine or Apollo installed once — see
+[Setting up the PC](docs/host-setup.md).
+
+## The terminal face
 
 The same binary, headless:
 
@@ -96,145 +138,49 @@ varde hosts      # list configured PCs
 ```
 
 `varde wake && varde play` on a keybinding does everything the Play tile
-does. (Linux-first: Windows release builds swallow console output.)
-
-### Calm by principle
-
-While a session runs — or the window is hidden — the launcher goes quiet:
-every ambient animation freezes, the status poll stretches, and your CPU
-cycles go to video decoding instead of ambience. Everything resumes when
-you're actually back.
-
-Two looks: **cozy** (warm ink, hand-drawn scenes, a snoring stone-cairn
-mascot whose beacon fire *is* the status display) and **OLED** (true black,
-type and hairlines only). English by default; Norwegian bokmål included.
-
-## Install
-
-Grab an installer from [Releases](../../releases): `deb`, `rpm`, `AppImage`
-on Linux; `msi` / `nsis` on Windows.
-
-> **Windows:** the installers aren't code-signed (yet), so SmartScreen may
-> show "Windows protected your PC" — click **More info → Run anyway**.
-> **AppImage:** make it executable first (right-click → Properties →
-> allow executing, or `chmod +x`). The `deb`/`rpm` packages install by
-> double-click on most desktops.
-
-Runtime tools Varde orchestrates (install what you'll use):
-
-| Tool | Why | Linux | Windows |
-|---|---|---|---|
-| [Moonlight](https://moonlight-stream.org) | streaming | Flatpak or native | `winget install MoonlightGameStreamingProject.Moonlight` |
-| FreeRDP 3 (`xfreerdp`) | Remote Desktop | distro package | not needed — `mstsc` is built in |
-| OpenSSH client | sleep, handover, diagnostics | distro package | built-in Windows feature |
-
-The host PC runs [Sunshine](https://github.com/LizardByte/Sunshine) or
-[Apollo](https://github.com/ClassicOldSong/Apollo) — Varde detects which
-and adapts its wording.
-
-### Set up the PC (once)
-
-The gaming PC needs the streaming host installed — a normal next-next-finish
-installer:
-
-1. On the PC, install **[Sunshine](https://github.com/LizardByte/Sunshine/releases/latest)**
-   (or [Apollo](https://github.com/ClassicOldSong/Apollo/releases/latest)),
-   and let it through the Windows firewall when asked.
-2. Optional, for the Work tile: turn on **Remote Desktop** in Windows
-   Settings (requires Windows Pro).
-3. Optional, for sleep/handover/diagnostics: set up key-based SSH to the PC
-   — this one is genuinely technical today; an in-app assistant is on the
-   roadmap.
-
-First launch of Varde opens a wizard: discover the PC on the LAN (mDNS) or
-type its address, check dependencies, pair with Moonlight (PIN shown
-in-app), save. SSH (step 3 above) unlocks the best parts: sleep, console
-handover, login-before-stream, wake diagnostics and the host optimizer.
+does. [Full reference](docs/cli.md).
 
 ## Honest expectations
 
-- **Pairing stays a two-step ritual.** Typing the PIN into the host's web
-  page is the host's half of the handshake; Varde streamlines it to "click
-  the link, type 4 digits" but can't remove it.
-- **Varde launches Moonlight; it doesn't replace it.** Once video starts,
-  that's Moonlight's renderer. The polished experience is everything around
-  it.
-- **RDP passwords never touch settings.json.** Opt-in storage goes to the
-  OS keyring (libsecret on Linux; Credential Manager / `TERMSRV` on
-  Windows, which `mstsc` reads natively). See [SECURITY.md](SECURITY.md).
-- **A PC on Wi-Fi can't wake from full shutdown** — only from sleep. Varde
-  tells you when that's the likely story.
-- **The SSH-powered features target Windows hosts** and some need rights:
-  if `tscon` returns access-denied on your setup, Settings lets you point
-  the reclaim at a scheduled task running as SYSTEM.
-- **Platforms:** Linux client is primary and battle-tested against a real
-  headless Windows host. The Windows client builds in CI but has had less
-  real-world use — reports welcome. macOS is currently unsupported.
+- **Varde launches Moonlight; it doesn't replace it.** Once video
+  starts, that's Moonlight's renderer. The polished experience is
+  everything around it.
+- **Pairing stays a two-step ritual.** Typing the PIN into the host's
+  web page is the host's half of the handshake; Varde streamlines it to
+  "click the link, type 4 digits" but can't remove it.
+- **A PC on Wi-Fi can't wake from full shutdown** — only from sleep.
+  Varde tells you when that's the likely story.
 
-## Quality presets
+RDP passwords never touch `settings.json`; opt-in storage goes to the OS
+keyring. See [SECURITY.md](SECURITY.md).
 
-Presets are applied as `moonlight stream` flags — cross-platform, and your
-saved Moonlight settings are never touched
-(see [docs/spike-moonlight-cli.md](docs/spike-moonlight-cli.md)):
+## Docs
 
-| Preset | Settings |
-|---|---|
-| Auto (default) | Client display's native resolution (capped 4K) and measured refresh rate; bitrate from moonlight-qt's curve doubled for LAN, capped 150 Mbps. Pacing on, V-Sync off, codec negotiated. |
-| Balanced | 1080p · 60 fps · 40 Mbps |
-| Quality | 1080p · 60 fps · 80 Mbps · HEVC · V-Sync + pacing |
-| Custom | your own resolution / fps / bitrate / codec / V-Sync / pacing / HDR |
+[Installing](docs/install.md) ·
+[Setting up the PC](docs/host-setup.md) ·
+[Waking](docs/waking.md) ·
+[Remote Desktop](docs/remote-desktop.md) ·
+[Streaming quality](docs/streaming.md) ·
+[The CLI](docs/cli.md)
 
-Auto re-measures per screen: drag the window from a 144 Hz monitor to a
-60 Hz TV and the next launch follows.
+## Contributing
 
-## Develop
-
-```sh
-npm install
-npm run tauri dev     # the app, hot-reloading
-```
-
-Linux needs Tauri's WebKitGTK stack first — see
-[CONTRIBUTING.md](CONTRIBUTING.md) for both distro families, code layout,
-and the two house rules (calm-mode discipline; new copy lands in both
-locales). `npm run build` + `cargo check && cargo test` must pass; CI runs
-them on Linux and Windows.
-
-`npm run tauri build` produces installers under
-`src-tauri/target/release/bundle/`. Native installers build on their target
-OS; CI's release workflow does all platforms from a tag. (AppImage tooling
-needs `libfuse.so.2` — without it the RPM still builds but linuxdeploy
-fails; `APPIMAGE_EXTRACT_AND_RUN=1` is the escape hatch.)
-
-## Architecture
-
-```
-src/                     React + TypeScript frontend
-  screens/               Wizard · Main · Settings
-  components/            ActionCard, ConnectOverlay, artwork (scenes + cairn)
-  lib/                   connect state machine, status polling, calm mode, i18n
-  locales/               en (canonical) · nb
-src-tauri/src/           Rust backend
-  net.rs                 magic packets, TCP probing, status, ARP MAC lookup
-  wake.rs                wake transports (WoL / HTTP / SSH relay) + diagnostics
-  discovery.rs           mDNS (_nvstream._tcp)
-  moonlight.rs           pairing (PIN via events) + stream launch/watch
-  rdp.rs                 FreeRDP / mstsc, GFX pipeline, host optimizer
-  ssh.rs                 sleep, console state/reclaim, PowerShell transport
-  session.rs             which leg is up; ending it for the hot-switch
-  cli.rs                 the terminal face
-  settings.rs            settings.json store & migrations
-  commands.rs, lib.rs    Tauri command surface + app builder
-```
-
-Settings live in an app-managed `settings.json`
-(Linux `~/.config/io.github.mjlading.varde/`, Windows
-`%APPDATA%\io.github.mjlading.varde\`). No telemetry, no accounts, no
-relay servers.
+Built with Tauri 2 (Rust) and React. `npm install && npm run tauri dev`
+gets you running; [CONTRIBUTING.md](CONTRIBUTING.md) has the system
+dependencies, the code layout, and the two house rules. Issues and pull
+requests welcome.
 
 ## License
 
-[GPL-3.0-or-later](LICENSE) — the same family as the ecosystem this builds
-on (Moonlight, Sunshine, Apollo). Varde launches those tools as separate
-processes and links none of their code; the copyleft is a choice, not an
-obligation.
+[GPL-3.0-or-later](LICENSE) — the same family as the ecosystem this
+builds on. Varde launches those tools as separate processes and links
+none of their code; the copyleft is a choice, not an obligation.
+
+[ci-badge]: https://github.com/mjlading/varde/actions/workflows/ci.yml/badge.svg?branch=main
+[ci-link]: https://github.com/mjlading/varde/actions/workflows/ci.yml
+[rel-badge]: https://img.shields.io/github/v/release/mjlading/varde?sort=semver&display_name=tag&color=e79c50
+[rel-link]: https://github.com/mjlading/varde/releases/latest
+[lic-badge]: https://img.shields.io/github/license/mjlading/varde?color=blue
+[lic-link]: LICENSE
+[plat-badge]: https://img.shields.io/badge/platform-Linux%20%7C%20Windows-lightgrey
+[plat-link]: #does-it-work-with-my-setup
