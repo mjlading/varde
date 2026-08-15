@@ -8,16 +8,16 @@ the one that matches your system; none of them need a terminal.
 
 | Package | For | Notes |
 |---|---|---|
-| `.deb` | Debian, Ubuntu, Mint, Pop!_OS | Double-click, or `sudo apt install ./varde_0.1.0_amd64.deb` |
-| `.rpm` | Fedora, RHEL, openSUSE | Double-click, or `sudo dnf install ./varde-0.1.0-1.x86_64.rpm` |
+| `.deb` | Debian, Ubuntu, Mint, Pop!_OS | Double-click, or `sudo apt install ./varde_*_amd64.deb` |
+| `.rpm` | Fedora, RHEL, openSUSE | Double-click, or `sudo dnf install ./varde-*.x86_64.rpm` |
 | `.AppImage` | anything else | No install: make it executable and run it |
 
 The AppImage needs to be marked executable before it will start — right-click
 → Properties → "Allow executing file as program" on most desktops, or:
 
 ```sh
-chmod +x Varde_0.1.0_amd64.AppImage
-./Varde_0.1.0_amd64.AppImage
+chmod +x Varde_*_amd64.AppImage
+./Varde_*_amd64.AppImage
 ```
 
 > [!NOTE]
