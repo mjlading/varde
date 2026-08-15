@@ -88,5 +88,5 @@ export const en_main: Record<string, string> = {
   "mn.webLinkUnknown": "Host's web page",
   "mn.serviceQuestionKnown": "Is {flavour} running on it?",
   "mn.serviceQuestionUnknown": "Is Sunshine or Apollo running on it?",
-  "mn.pinPageSentence": "Enter this PIN on {page}.",
+  "mn.pinPageSentence": "Enter this PIN on {page}. Moonlight's window shows the same code.",
 };

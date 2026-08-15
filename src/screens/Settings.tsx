@@ -12,10 +12,11 @@ import {
   Zap,
 } from "lucide-react";
 import { useApp } from "../store";
-import { api, hostPinUrl, onPairingPin } from "../lib/api";
+import { api, hostPinUrl } from "../lib/api";
 import { t } from "../lib/i18n";
 import { describeAutoQuality, displayHint } from "../lib/display";
 import { pinPageSentence } from "../lib/flavour";
+import { newPairingPin } from "../lib/pin";
 import { setSoundsEnabled, sounds } from "../lib/sounds";
 import type {
   GfxMode,
@@ -998,26 +999,25 @@ function HostList({ currentId }: { currentId: string }) {
 
 function RepairModal({ host, onClose, onPaired }: { host: Host; onClose: () => void; onPaired: () => void }) {
   const patchHost = useApp((s) => s.patchHost);
-  const [pin, setPin] = useState<string | null>(null);
-  const [message, setMessage] = useState(t("st.starting"));
+  // We pick the code and pass it to Moonlight, so its own pairing dialog shows
+  // the same number as this one.
+  const [pin] = useState(newPairingPin);
+  const [message, setMessage] = useState(() => pinPageSentence(host));
   const [done, setDone] = useState(false);
-  const unlisten = useRef<null | (() => void)>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      unlisten.current = await onPairingPin((p) => { if (!cancelled) { setPin(p); setMessage(pinPageSentence(host)); } });
       try {
-        const res = await api.startPairing(host.address);
+        const res = await api.startPairing(host.address, pin);
         if (cancelled) return;
-        unlisten.current?.();
         if (res.paired) { await patchHost(host.id, { paired: true }); onPaired(); setDone(true); setMessage(t("st.pairedMsg")); sounds.success(); }
         else { setMessage(res.message); }
       } catch (e) {
         if (!cancelled) setMessage(String(e));
       }
     })();
-    return () => { cancelled = true; unlisten.current?.(); };
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1026,16 +1026,16 @@ function RepairModal({ host, onClose, onPaired }: { host: Host; onClose: () => v
       <motion.div className="dialog" style={{ width: "100%", maxWidth: 420, padding: "34px 30px", textAlign: "center" }}
         initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.24, ease: EASE }}>
         <h2 style={{ fontSize: 20, marginBottom: 6 }}>{done ? t("st.pairedTitle") : t("st.pairAgain")}</h2>
-        {pin && !done && (
+        {!done && (
           <div style={{ margin: "18px 0" }}>
             <div className="text-3" style={{ fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase" }}>{t("st.pin")}</div>
             <div className="pin-display">{pin}</div>
           </div>
         )}
-        {!pin && !done && <div style={{ display: "flex", justifyContent: "center", padding: 18 }}><Loader2 className="spin" size={22} /></div>}
+        {!done && <div style={{ display: "flex", justifyContent: "center", padding: 8 }}><Loader2 className="spin" size={18} /></div>}
         <p className="text-2" style={{ fontSize: 14 }}>{message}</p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 20 }}>
-          {pin && !done && (
+          {!done && (
             <Button variant="ghost" onClick={() => api.openUrl(hostPinUrl(host.address))}>
               <ExternalLink size={15} strokeWidth={2} /> {t("st.pinPage")}
             </Button>

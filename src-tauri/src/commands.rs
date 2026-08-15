@@ -135,9 +135,19 @@ pub fn check_dependencies(app: AppHandle) -> Result<crate::deps::DependencyStatu
 }
 
 #[tauri::command]
-pub async fn start_pairing(app: AppHandle, address: String) -> Result<moonlight::PairResult, String> {
+pub async fn start_pairing(
+    app: AppHandle,
+    address: String,
+    pin: String,
+) -> Result<moonlight::PairResult, String> {
     let s = load_settings(&app)?;
-    moonlight::start_pairing(app.clone(), s.moonlight_path_override.as_deref(), &address).await
+    moonlight::start_pairing(
+        app.clone(),
+        s.moonlight_path_override.as_deref(),
+        &address,
+        &pin,
+    )
+    .await
 }
 
 /// Client-display facts measured by the frontend (native pixels + refresh

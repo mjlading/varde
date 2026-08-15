@@ -43,7 +43,10 @@ export const api = {
 
   checkDependencies: () => invoke<DependencyStatus>("check_dependencies"),
 
-  startPairing: (address: string) => invoke<PairResult>("start_pairing", { address }),
+  /** `pin` is chosen by the caller and shown to the user; Moonlight is told to
+   *  use exactly that code, so both windows show the same number. */
+  startPairing: (address: string, pin: string) =>
+    invoke<PairResult>("start_pairing", { address, pin }),
 
   launchStream: (hostId: string, appName: string, displayHint?: DisplayHint) =>
     invoke<void>("launch_stream", { hostId, appName, displayHint: displayHint ?? null }),
@@ -93,11 +96,6 @@ export const api = {
     await win.setFocus().catch(() => {});
   },
 };
-
-/** Subscribe to the pairing PIN emitted by the backend. */
-export function onPairingPin(cb: (pin: string) => void): Promise<UnlistenFn> {
-  return listen<string>("pair:pin", (e) => cb(e.payload));
-}
 
 /** Fired when a stream died right after launch and is being relaunched
  *  automatically (typically: the first connect hit the Windows login screen). */

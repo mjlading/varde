@@ -88,5 +88,5 @@ export const nb_main: Record<string, string> = {
   "mn.webLinkUnknown": "Vertens nettside",
   "mn.serviceQuestionKnown": "Kjører {flavour} på den?",
   "mn.serviceQuestionUnknown": "Kjører Sunshine eller Apollo på den?",
-  "mn.pinPageSentence": "Skriv inn denne PIN-koden på {page}.",
+  "mn.pinPageSentence": "Skriv inn denne PIN-koden på {page}. Moonlight-vinduet viser den samme koden.",
 };

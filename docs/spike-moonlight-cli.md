@@ -53,16 +53,33 @@ waits while the user types that PIN into Apollo/Sunshine's web UI at
 `https://<host>:47990/pin`. This two-step ritual is Apollo's half of the handshake
 and cannot be removed — Varde streamlines it to "click the link, type 4 digits".
 
-Windows subtlety, confirmed in moonlight-qt `main.cpp`: in CLI mode it calls
-`AttachConsole(ATTACH_PARENT_PROCESS)` and reopens **stderr** (`CONOUT$`) — so PIN
-output can land on **stderr**, not stdout. Varde therefore:
+**Superseded — Varde chooses the PIN instead of reading it back.**
 
-- captures **both** stdout and stderr and scans for `\b\d{4}\b`;
-- spawns with `CREATE_NO_WINDOW` on Windows (our Tauri parent is a GUI-subsystem
-  process with no console, so `AttachConsole` fails there and the child keeps the
-  inherited pipe handles — output is captured cleanly, no console flash);
-- falls back to a manual "the PIN is also shown in Moonlight's window" instruction
-  if no PIN is parsed within a few seconds.
+`moonlight pair <host> --pin NNNN` makes Moonlight use a code we supply
+(`--pin <pin>  Specify 4 digit pairing PIN to use.`, verified against 6.1.0).
+Varde generates the 4 digits, shows them, and passes them in. Nothing is parsed.
+
+The original design scraped the PIN out of the child's output with `\b(\d{4})\b`
+across merged stdout+stderr, keeping the first match. That shipped and was wrong
+in the field: a tester saw **1002** in Varde while Moonlight's own dialog said
+**6242**. Two failure modes combined —
+
+- moonlight-qt logs freely to stderr (SDL banners, Qt warnings, timestamps), so
+  the first four-digit token is very often not the PIN; and
+- the match latched (`if pin.is_none()`), so a wrong early hit could never be
+  corrected when the real PIN arrived.
+
+It also could not have worked reliably anyway: **`moonlight pair` is not
+headless**. moonlight-qt raises its own pairing dialog showing the code, and that
+window cannot be suppressed — so any number Varde displays must *be* that number,
+which only `--pin` guarantees.
+
+Still true, and still why we pipe output at all (for `pair:log` diagnostics): in
+CLI mode moonlight-qt calls `AttachConsole(ATTACH_PARENT_PROCESS)` and reopens
+**stderr** (`CONOUT$`), so its output can land on stderr rather than stdout. Varde
+spawns with `CREATE_NO_WINDOW` on Windows — our Tauri parent is a GUI-subsystem
+process with no console, so `AttachConsole` fails there and the child keeps the
+inherited pipe handles: captured cleanly, no console flash.
 
 ## Finding 3½ — app names are exact, so resolve them at launch
 

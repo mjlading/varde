@@ -168,7 +168,6 @@ export const en_settings: Record<string, string> = {
   "st.active": "Active",
   "st.makeActive": "Make active",
 
-  "st.starting": "Starting…",
   "st.pairedMsg": "Paired.",
   "st.pairedTitle": "Paired",
   "st.pin": "PIN",

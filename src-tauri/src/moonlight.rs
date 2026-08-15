@@ -1,12 +1,11 @@
-//! Orchestrates the Moonlight CLI: pairing (streaming the PIN back to the UI in
-//! real time) and launching streams with per-host quality applied as flags.
+//! Orchestrates the Moonlight CLI: pairing (with a PIN the UI chose and passes
+//! in) and launching streams with per-host quality applied as flags.
 //! See docs/spike-moonlight-cli.md for why quality is passed as flags rather
 //! than by patching Moonlight's stored config.
 
 use crate::deps::{detect_moonlight, MoonlightLauncher};
 use crate::settings::StreamQuality;
 use crate::util::hide_console;
-use regex::Regex;
 use serde::Serialize;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -36,7 +35,6 @@ pub struct StreamEnded {
 #[serde(rename_all = "camelCase")]
 pub struct PairResult {
     pub paired: bool,
-    pub pin: Option<String>,
     pub message: String,
 }
 
@@ -303,17 +301,25 @@ fn friendly_stream_error(stderr: &str) -> String {
     }
 }
 
-/// Start pairing with a host. Emits `pair:pin` when the PIN is detected and
-/// `pair:log` for each output line. Resolves when pairing completes, fails, or
-/// times out (the process stays alive while the user enters the PIN in Apollo).
+/// Start pairing with a host using a PIN *we* chose. Emits `pair:log` for each
+/// output line. Resolves when pairing completes, fails, or times out (the
+/// process stays alive while the user enters the PIN on the host's web page).
+///
+/// The caller supplies the PIN and shows it; `moonlight pair --pin NNNN` makes
+/// Moonlight use that exact code, so its own (unsuppressable) pairing dialog
+/// displays the same number our UI does. We used to let Moonlight invent the
+/// PIN and scrape it back with `\b(\d{4})\b` over merged stdout+stderr, which
+/// latched onto the first four-digit token in Qt's log preamble and never
+/// corrected itself — a tester was shown 1002 while Moonlight said 6242.
 pub async fn start_pairing(
     app: AppHandle,
     moonlight_override: Option<&str>,
     address: &str,
+    pin: &str,
 ) -> Result<PairResult, String> {
     let l = launcher(moonlight_override)?;
     let mut cmd = base_command(&l);
-    cmd.args(["pair", address]);
+    cmd.args(["pair", address, "--pin", pin]);
     cmd.stdin(Stdio::null());
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
@@ -348,45 +354,33 @@ pub async fn start_pairing(
     }
     drop(tx); // original sender dropped; channel closes once both readers finish
 
-    let pin_re = Regex::new(r"\b(\d{4})\b").unwrap();
     let emit_app = app.clone();
 
     let work = async move {
-        let mut pin: Option<String> = None;
         while let Some(line) = rx.recv().await {
             let _ = emit_app.emit("pair:log", &line);
-            if pin.is_none() {
-                if let Some(c) = pin_re.captures(&line) {
-                    let p = c[1].to_string();
-                    let _ = emit_app.emit("pair:pin", &p);
-                    pin = Some(p);
-                }
-            }
         }
-        let status = child.wait().await;
-        (status, pin)
+        child.wait().await
     };
 
     match tokio::time::timeout(Duration::from_secs(150), work).await {
-        Ok((Ok(status), pin)) => {
+        Ok(Ok(status)) => {
             let paired = status.success();
             let message = if paired {
                 "Paired.".to_string()
-            } else if pin.is_some() {
-                "Pairing was not confirmed. Enter the PIN on the Apollo web page, then try again."
-                    .to_string()
             } else {
-                "Pairing failed. Check that the PC is awake and reachable.".to_string()
+                // The host names itself in the UI, which knows the flavour;
+                // from here the neutral wording is the only true one.
+                "Pairing was not confirmed. Enter the PIN on the PC's streaming \
+                 web page, then try again."
+                    .to_string()
             };
-            Ok(PairResult {
-                paired,
-                pin,
-                message,
-            })
+            Ok(PairResult { paired, message })
         }
-        Ok((Err(e), _)) => Err(format!("Error in the pairing process: {e}")),
+        Ok(Err(e)) => Err(format!("Error in the pairing process: {e}")),
         Err(_) => Err(
-            "Pairing took too long. Open Apollo's PIN page and enter the code, then try again."
+            "Pairing took too long. Open the PC's streaming web page and enter \
+             the PIN, then try again."
                 .to_string(),
         ),
     }

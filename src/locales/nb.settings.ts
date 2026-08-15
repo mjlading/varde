@@ -168,7 +168,6 @@ export const nb_settings: Record<string, string> = {
   "st.active": "Aktiv",
   "st.makeActive": "Gjør aktiv",
 
-  "st.starting": "Starter…",
   "st.pairedMsg": "Paret.",
   "st.pairedTitle": "Paret",
   "st.pin": "PIN",

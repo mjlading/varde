@@ -40,10 +40,9 @@ export const en_wizard: Record<string, string> = {
   // Pairing
   "wz.pairTitle": "Pair with Moonlight",
   "wz.pairSub":
-    "Pairing is a quick two-step handshake: Varde shows a PIN, and you enter it on the streaming service's web page on the PC. You only do this once.",
-  "wz.waitingForPin": "Waiting for the PIN from Moonlight…",
+    "Pairing is a quick two-step handshake: Moonlight shows a PIN, and you enter it on the streaming service's web page on the PC. You only do this once.",
   "wz.enterPinOnHost":
-    "Enter this PIN on the streaming service's web page on the PC (Sunshine or Apollo) to finish pairing.",
+    "Enter this PIN on {page} to finish pairing. Moonlight's window shows the same code.",
   "wz.paired": "Paired",
   "wz.pairedSub": "This PC is ready to stream.",
   "wz.readyToPair": "Ready to pair with",

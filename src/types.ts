@@ -178,7 +178,6 @@ export interface DependencyStatus {
 
 export interface PairResult {
   paired: boolean;
-  pin: string | null;
   message: string;
 }
 

@@ -40,10 +40,9 @@ export const nb_wizard: Record<string, string> = {
   // Pairing
   "wz.pairTitle": "Par med Moonlight",
   "wz.pairSub":
-    "Paring er et raskt håndtrykk i to steg: Varde viser en PIN-kode, og du skriver den inn på nettsiden til strømmetjenesten på PC-en. Dette gjør du bare én gang.",
-  "wz.waitingForPin": "Venter på PIN-koden fra Moonlight…",
+    "Paring er et raskt håndtrykk i to steg: Moonlight viser en PIN-kode, og du skriver den inn på nettsiden til strømmetjenesten på PC-en. Dette gjør du bare én gang.",
   "wz.enterPinOnHost":
-    "Skriv inn denne PIN-koden på nettsiden til strømmetjenesten på PC-en (Sunshine eller Apollo) for å fullføre paringen.",
+    "Skriv inn denne PIN-koden på {page} for å fullføre paringen. Moonlight-vinduet viser den samme koden.",
   "wz.paired": "Paret",
   "wz.pairedSub": "Denne PC-en er klar til å strømme.",
   "wz.readyToPair": "Klar til å pare med",

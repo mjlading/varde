@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -13,11 +13,9 @@ import {
   X,
 } from "lucide-react";
 import { useApp } from "../store";
-import {
-  api,
-  hostPinUrl,
-  onPairingPin,
-} from "../lib/api";
+import { api, hostPinUrl } from "../lib/api";
+import { webPageName } from "../lib/flavour";
+import { newPairingPin } from "../lib/pin";
 import { newHost, type DependencyStatus, type DiscoveredHost, type Host } from "../types";
 import { Button, Field } from "../components/ui";
 import { Logo } from "../components/Logo";
@@ -467,25 +465,16 @@ function Pairing({
   );
   const [pin, setPin] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
-  const unlisten = useRef<null | (() => void)>(null);
-
-  useEffect(() => {
-    return () => {
-      unlisten.current?.();
-    };
-  }, []);
 
   async function startPairing() {
+    // We choose the code and pass it to Moonlight, so its own pairing dialog
+    // shows the same number this screen does.
+    const code = newPairingPin();
+    setPin(code);
     setPhase("pairing");
-    setPin(null);
-    setMessage(t("wz.waitingForPin"));
-    unlisten.current = await onPairingPin((p) => {
-      setPin(p);
-      setMessage(t("wz.enterPinOnHost"));
-    });
+    setMessage(t("wz.enterPinOnHost", { page: webPageName(draft) }));
     try {
-      const result = await api.startPairing(draft.address);
-      unlisten.current?.();
+      const result = await api.startPairing(draft.address, code);
       if (result.paired) {
         patch({ paired: true });
         setPhase("done");
@@ -495,7 +484,6 @@ function Pairing({
         setMessage(result.message);
       }
     } catch (e) {
-      unlisten.current?.();
       setPhase("error");
       setMessage(String(e));
     }
@@ -547,25 +535,20 @@ function Pairing({
 
           {(phase === "pairing" || phase === "error") && (
             <div style={{ textAlign: "center" }}>
-              <AnimatePresence mode="wait">
-                {pin ? (
-                  <motion.div
-                    key="pin"
-                    initial={{ opacity: 0, scale: 0.94 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.28, ease: EASE }}
-                  >
-                    <div className="text-3" style={{ fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase" }}>
-                      {t("wz.yourPin")}
-                    </div>
-                    <div className="pin-display">{pin}</div>
-                  </motion.div>
-                ) : phase === "pairing" ? (
-                  <motion.div key="wait" style={{ display: "flex", justifyContent: "center", padding: 16 }}>
-                    <Loader2 className="spin" size={22} />
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
+              {pin && (
+                <div>
+                  <div className="text-3" style={{ fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase" }}>
+                    {t("wz.yourPin")}
+                  </div>
+                  <div className="pin-display">{pin}</div>
+                </div>
+              )}
+
+              {phase === "pairing" && (
+                <div style={{ display: "flex", justifyContent: "center", padding: 8 }}>
+                  <Loader2 className="spin" size={18} />
+                </div>
+              )}
 
               <p
                 className="text-2"
@@ -574,16 +557,14 @@ function Pairing({
                 {message}
               </p>
 
-              {pin && (
-                <button
-                  className="btn btn-ghost"
-                  style={{ marginTop: 14 }}
-                  onClick={() => api.openUrl(hostPinUrl(draft.address))}
-                >
-                  <ExternalLink size={15} strokeWidth={2} />
-                  {t("wz.openPinPage")}
-                </button>
-              )}
+              <button
+                className="btn btn-ghost"
+                style={{ marginTop: 14 }}
+                onClick={() => api.openUrl(hostPinUrl(draft.address))}
+              >
+                <ExternalLink size={15} strokeWidth={2} />
+                {t("wz.openPinPage")}
+              </button>
 
               {phase === "error" && (
                 <div style={{ marginTop: 16 }}>
